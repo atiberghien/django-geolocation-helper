@@ -1,0 +1,3 @@
+include AUTHORS
+recursive-include geolocation_helper/templatetags *
+recursive-include geolocation_helper/templates *
