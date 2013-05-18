@@ -14,6 +14,13 @@ class GeoLocatedModel(geomodels.Model):
         """
         raise NotImplementedError
     
+    def is_geolocated(self):
+        """
+        Usefull for example in the admin in order to easily identify non geolocated object
+        """
+        return self.geom is not None
+    is_geolocated.boolean = True
+    
     class Meta:
         abstract = True
 
