@@ -4,20 +4,22 @@ from django.template.loader import render_to_string
 
 from .models import GeoLocatedModel
 
+import json
+
 class GeoLocatedModelJsonList(View): 
     model = None
     
     def get_queryset(self):
         if issubclass(self.model, GeoLocatedModel):
-            return self.model.objects.filter(geom__isnull=False)
+            return list(self.model.objects.filter(geom__isnull=False))
         else:
             raise NotImplementedError
     
-    def to_json(self):
+    def prepare_queryset_to_json(self):
         raise NotImplementedError
     
     def get(self, request, *args, **kwargs):
-        return HttpResponse(self.to_json(),
+        return HttpResponse(json.dumps(self.prepare_queryset_to_json()),
                             mimetype='application/json')
         
 class GeolocatedModelMarkerPopup(View):  
