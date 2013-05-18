@@ -11,7 +11,7 @@ class GeoLocatedModelJsonList(View):
     
     def get_queryset(self):
         if issubclass(self.model, GeoLocatedModel):
-            return list(self.model.objects.filter(geom__isnull=False))
+            return self.model.objects.filter(geom__isnull=False)
         else:
             raise NotImplementedError
     
