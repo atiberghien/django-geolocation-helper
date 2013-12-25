@@ -1,7 +1,9 @@
+from django.conf import settings
 from django.contrib.gis.db import models as geomodels
 from django.contrib.gis.geos.point import Point
 
-from geopy import geocoders
+import json
+import urllib2
 
 class GeoLocatedModel(geomodels.Model):
     geom = geomodels.PointField(null=True, blank=True)
@@ -21,17 +23,40 @@ class GeoLocatedModel(geomodels.Model):
         return self.geom is not None
     is_geolocated.boolean = True
     
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+
+        def request_mapquest(location):
+            mapquest_params = [
+                "key=%s" % settings.MAPQUEST_APIKEY,
+                'inFormat=kvp',
+                'outFormat=json',
+                'thumbMaps=false',
+                'maxResults=1',
+                'location=%s' % location
+            ]
+            mapquest_url = "http://open.mapquestapi.com/geocoding/v1/address?%s" % "&".join(mapquest_params)
+            response = urllib2.urlopen(mapquest_url)
+            data = json.load(response)
+            return data["results"][0]["locations"][0]["latLng"]
+        
+        
+           
+        try:
+            latlng = request_mapquest(urllib2.quote(self.get_location_as_string().encode('utf8')))
+            self.geom = Point(latlng["lng"], latlng["lat"])
+        except Exception, e:
+            try:
+                latlng = request_mapquest(urllib2.quote(self.city.encode('utf8')))
+                self.geom = Point(latlng["lng"], latlng["lat"])
+            except Exception, e:
+                print self.id, self.get_location_as_string()
+                print 10*"-"
+        
+        return geomodels.Model.save(self, 
+                                    force_insert=force_insert, 
+                                    force_update=force_update, 
+                                    using=using, 
+                                    update_fields=update_fields)
+    
     class Meta:
         abstract = True
-
-def update_geolocation(sender, instance, **kwargs):
-    """
-    This signal receiver update the instance but does not save it
-    Should be used with pre_save signal
-    """
-    g = geocoders.GoogleV3()
-    try:
-        place, (lat, lng) = g.geocode(instance.get_location_as_string())
-        instance.geom = Point(lng, lat)
-    except:
-        instance.geom = None
